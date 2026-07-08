@@ -12,6 +12,16 @@
  * Payload applicativo: stesso MyBeaconPayload/MyStatusPayload del master.
  * Lo slave deve solo definire le stesse struct — nessuna dipendenza hardcoded
  * dalla libreria sul contenuto del payload.
+ *
+ * NOTA — risparmio energetico WiFi: Mesh.begin() disabilita automaticamente
+ * il modem sleep (esp_wifi_set_ps(WIFI_PS_NONE)) perché altrimenti il radio
+ * ESP-NOW perde o ritarda i beacon del master quando va in sleep tra un DTIM
+ * e l'altro (causa tipica di slave che sembrano "disconnessi" a intermittenza).
+ * Il rovescio della medaglia è un consumo più alto: se lo slave è a batteria
+ * e serve risparmio energetico reale, non riattivare il power-save WiFi —
+ * usa invece un duty-cycle applicativo (light/deep sleep tra un ciclo e
+ * l'altro, re-inizializzando la mesh al risveglio). Vedi il README, sezione
+ * "WiFi power save", per i dettagli e le alternative.
  */
 
 #include <ESPNowMesh.h>

@@ -10,6 +10,14 @@
  *
  * Payload applicativo: struct MyBeaconPayload (definita dall'utente).
  * Il payload viene copiato nel campo opaque del pacchetto beacon.
+ *
+ * NOTA — risparmio energetico WiFi: Mesh.begin() disabilita automaticamente
+ * il modem sleep (esp_wifi_set_ps(WIFI_PS_NONE)) perché altrimenti il radio
+ * ESP-NOW perde o ritarda pacchetti quando va in sleep tra un beacon DTIM e
+ * l'altro. Questo tiene il radio sempre attivo: se il master è alimentato
+ * da rete non è un problema, ma non richiamare esp_wifi_set_ps(WIFI_PS_MIN_MODEM)
+ * o WIFI_PS_MAX_MODEM dopo begin(), altrimenti si reintroduce il problema.
+ * Vedi il README, sezione "WiFi power save", per i dettagli.
  */
 
 #include <WiFi.h>

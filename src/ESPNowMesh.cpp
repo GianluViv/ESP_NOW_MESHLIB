@@ -393,6 +393,11 @@ bool ESPNowMesh::initEspNow(uint8_t channel) {
 
   if (esp_now_init() != ESP_OK) return false;
 
+  // Disabilita il risparmio energetico del modem WiFi: se attivo, il radio
+  // va periodicamente in sleep e ritarda/perde i pacchetti ESP-NOW in arrivo
+  // (vedi sezione "WiFi power save" nel README).
+  esp_wifi_set_ps(WIFI_PS_NONE);
+
   esp_now_register_recv_cb(reinterpret_cast<esp_now_recv_cb_t>(recvCb));
   esp_now_register_send_cb(sendCb);
   ensurePeer(_broadcast);
@@ -443,6 +448,12 @@ bool ESPNowMesh::begin(bool isMaster, const char *networkId, uint8_t ttl) {
     }
 
     if (esp_now_init() != ESP_OK) return false;
+
+    // Disabilita il risparmio energetico del modem WiFi (vedi README, sezione
+    // "WiFi power save"): senza questa chiamata il radio va periodicamente in
+    // sleep e i pacchetti ESP-NOW in arrivo vengono ritardati o persi.
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
     esp_now_register_recv_cb(reinterpret_cast<esp_now_recv_cb_t>(recvCb));
     esp_now_register_send_cb(sendCb);
     ensurePeer(_broadcast);
@@ -463,6 +474,12 @@ bool ESPNowMesh::begin(bool isMaster, const char *networkId, uint8_t ttl) {
     esp_wifi_set_channel(1, WIFI_SECOND_CHAN_NONE);
 
     if (esp_now_init() != ESP_OK) return false;
+
+    // Disabilita il risparmio energetico del modem WiFi (vedi README, sezione
+    // "WiFi power save"): senza questa chiamata il radio va periodicamente in
+    // sleep e i pacchetti ESP-NOW in arrivo vengono ritardati o persi.
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
     esp_now_register_recv_cb(reinterpret_cast<esp_now_recv_cb_t>(recvCb));
     esp_now_register_send_cb(sendCb);
     ensurePeer(_broadcast);
