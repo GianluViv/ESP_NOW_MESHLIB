@@ -344,11 +344,6 @@ void ESPNowMesh::recvCb(const uint8_t *srcMac, const uint8_t *data, int len) {
   if (pkt->ttl > 1) Mesh.relay(pkt);
 }
 
-void ESPNowMesh::sendCb(const uint8_t *mac, esp_now_send_status_t status) {
-  (void)mac;
-  (void)status;
-}
-
 // ============================================================================
 // SCAN CANALI
 // ============================================================================

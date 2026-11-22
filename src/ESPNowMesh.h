@@ -193,7 +193,11 @@ private:
 #else
   static void recvCb(const uint8_t *mac, const uint8_t *data, int len);
 #endif
-  static void sendCb(const uint8_t *mac, esp_now_send_status_t status);
+  template <typename T>
+  static void sendCb(const T *info, esp_now_send_status_t status) {
+    (void)info;
+    (void)status;
+  }
 
   static const uint8_t _broadcast[6];
 };
