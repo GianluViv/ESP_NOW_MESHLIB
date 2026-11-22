@@ -33,8 +33,20 @@ leaving the payload format entirely up to the application.
 
 ## Installation
 
-Copy this repository into your Arduino `libraries/` folder (or add it as a
-PlatformIO library dependency), then:
+### PlatformIO (recommended)
+
+Add the library to your `platformio.ini`:
+
+```ini
+lib_deps =
+  https://github.com/GianluViv/ESP_NOW_MESHLIB.git
+```
+
+Or clone/copy this repository into your project's `lib/` folder.
+
+### Arduino IDE
+
+Copy this repository into your Arduino `libraries/` folder, then:
 
 ```cpp
 #include <ESPNowMesh.h>
@@ -85,9 +97,73 @@ void loop() {
 }
 ```
 
-See [`examples/master`](examples/master/master.ino) and
-[`examples/slave`](examples/slave/slave.ino) for complete, runnable examples
-(button-triggered pairing, payload structs, callbacks).
+See [`examples/master`](examples/master/master.ino),
+[`examples/slave`](examples/slave/slave.ino) (Arduino IDE) and
+[`examples/espnow_chat_test`](examples/espnow_chat_test/README.md) (PlatformIO
+bidirectional serial chat) for complete, runnable examples.
+
+## Architecture & Network Operation
+
+### Multi-hop topology (3-node example)
+
+Every node relays unseen packets with `ttl > 1` (decrementing `ttl` and adding
+a 0–8 ms jitter), using a 32-entry `(sender_mac, seq_id)` ring buffer to prevent
+routing loops and duplicate delivery:
+
+```mermaid
+flowchart LR
+  M["Master Node<br/>(WiFi STA / AP+STA)<br/>Sends PKT_BEACON &amp; PKT_COMMAND"]
+  S1["Slave 1 (Relay)<br/>TTL=3 → decrements to TTL=2<br/>Relays unseen packets"]
+  S2["Slave 2 (Out of direct range)<br/>Receives via Slave 1<br/>Replies with PKT_STATUS"]
+
+  M <-->|"Direct ESP-NOW<br/>(Beacon / Command / Status)"| S1
+  S1 <-->|"Multi-hop Relay<br/>(TTL > 1, 0-8 ms jitter)"| S2
+```
+
+### Pairing handshake
+
+```mermaid
+sequenceDiagram
+  participant M as Master
+  participant S as Slave
+  Note over M,S: User triggers startPairing() on both nodes
+  M->>S: PKT_PAIRING_REQ (broadcast, channel + network_id)
+  S->>M: PKT_PAIRING_ACK
+  Note over S: Saves channel & network_id to NVS<br/>Fires onPaired(false) and esp_restart()
+  Note over M: Fires onPaired(true)
+```
+
+## 3-ESP32 Multi-Hop Demonstration
+
+You can reproduce a complete 3-node mesh test using the included PlatformIO
+example [`examples/espnow_chat_test`](examples/espnow_chat_test):
+
+1. **Flash 1 Master and 2 Slaves** (requires 3 ESP32 dev boards):
+   ```bash
+   cd examples/espnow_chat_test
+
+   # Board 1: Master
+   pio run -e master -t upload --upload-port /dev/ttyUSB0
+
+   # Board 2 & Board 3: Slaves
+   pio run -e slave -t upload --upload-port /dev/ttyUSB1
+   pio run -e slave -t upload --upload-port /dev/ttyUSB2
+   ```
+2. **Open 3 serial monitors** at `115200` baud:
+   ```bash
+   pio device monitor -p /dev/ttyUSB0 -b 115200 --echo
+   pio device monitor -p /dev/ttyUSB1 -b 115200 --echo
+   pio device monitor -p /dev/ttyUSB2 -b 115200 --echo
+   ```
+3. **Power on & pair:** power on the Master first, then both Slaves. Hold
+   **BOOT (GPIO 0)** for 3 seconds on the Master and each Slave to complete
+   pairing (`[PAIRING] Completato!`). Each Slave persists the channel and
+   `network_id` in NVS and restarts automatically.
+4. **Verify multi-hop relay:** place Slave 2 out of direct radio range of the
+   Master while keeping Slave 1 in between. Messages typed on the Master
+   (`PKT_COMMAND`) and on Slave 2 (`PKT_STATUS`) are relayed transparently by
+   Slave 1 (`ENMESH_TTL_DEFAULT = 3`), and the Master prints each Slave's
+   message tagged with its MAC suffix (`[SLAVE XX:XX:XX]`).
 
 ## Concepts
 
@@ -276,5 +352,4 @@ without fighting the WiFi driver's power-save/ESP-NOW timing conflict.
 
 ## License
 
-See repository metadata / author information in
-[`library.properties`](library.properties).
+Released under the **MIT License** — see [LICENSE](LICENSE).
